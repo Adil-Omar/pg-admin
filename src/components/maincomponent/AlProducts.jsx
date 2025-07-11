@@ -14,18 +14,44 @@ import { Button } from "../ui/button";
 import { toast } from "react-toastify";
 
 const backednUrl = import.meta.env.VITE_BACKEND_URL;
+
 const AlProducts = () => {
   const { fetchProducts, products, allProductLoading, ignoredProductIds } =
     useContext(AdminContext);
   const [currentPage, setCurrentPage] = useState(1);
   const [selectedSupplier, setSelectedSupplier] = useState("");
   const [localIgnoredIds, setLocalIgnoredIds] = useState(new Set());
+  const [supplierMargins, setSupplierMargins] = useState({});
+  const [marginsLoading, setMarginsLoading] = useState(false);
   const itemsPerPage = 15;
   const navigate = useNavigate();
 
   useEffect(() => {
     fetchProducts();
+    fetchSupplierMargins();
   }, []);
+
+  // Fetch supplier margins
+  const fetchSupplierMargins = async () => {
+    setMarginsLoading(true);
+    try {
+      const response = await fetch(`${backednUrl}/api/product-margin/list-margin/supplier`);
+      if (response.ok) {
+        const data = await response.json();
+        // Convert array to object with supplierId as key for quick lookup
+        const marginsObj = {};
+        data.data.forEach(item => {
+          marginsObj[item.supplierId] = item.margin;
+        });
+        setSupplierMargins(marginsObj);
+      }
+    } catch (error) {
+      console.error("Error fetching supplier margins:", error);
+      toast.error("Failed to fetch supplier margins");
+    } finally {
+      setMarginsLoading(false);
+    }
+  };
 
   // Update local ignored IDs when context changes
   useEffect(() => {
@@ -34,7 +60,28 @@ const AlProducts = () => {
     }
   }, [ignoredProductIds]);
 
-  if (allProductLoading)
+  // Calculate price with supplier margin
+  const calculatePriceWithMargin = (product) => {
+    const priceGroups = product.product?.prices?.price_groups || [];
+    const basePrice = priceGroups.find((group) => group?.base_price) || {};
+    const priceBreaks = basePrice.base_price?.price_breaks || [];
+    const originalPrice = priceBreaks.length > 0 && priceBreaks[0]?.price !== undefined
+      ? parseFloat(priceBreaks[0].price)
+      : 0;
+
+    const supplierId = product.supplier?.supplier_id;
+    const supplierMargin = supplierMargins[supplierId] || 0;
+    
+    const finalPrice = originalPrice + supplierMargin;
+    
+    return {
+      originalPrice,
+      supplierMargin,
+      finalPrice
+    };
+  };
+
+  if (allProductLoading || marginsLoading)
     return (
       <div className='flex items-center justify-center mt-20'>
         <div className='w-12 h-12 border-t-2 border-blue-500 rounded-full animate-spin'></div>
@@ -145,23 +192,18 @@ const AlProducts = () => {
             <TableHead className="w-[100px]">Image</TableHead>
             <TableHead>Name</TableHead>
             <TableHead>Code</TableHead>
-            <TableHead>Price</TableHead>
+            <TableHead>Supplier</TableHead>
+            <TableHead>Original Price</TableHead>
+            <TableHead>Supplier Margin</TableHead>
+            <TableHead>Final Price</TableHead>
             <TableHead className="text-right">Actions</TableHead>
           </TableRow>
         </TableHeader>
         <TableBody>
           {currentProducts.map((product, index) => {
-            const priceGroups = product.product?.prices?.price_groups || [];
-            const basePrice =
-              priceGroups.find((group) => group?.base_price) || {};
-            const priceBreaks = basePrice.base_price?.price_breaks || [];
-            const realPrice =
-              priceBreaks.length > 0 && priceBreaks[0]?.price !== undefined
-                ? priceBreaks[0].price
-                : "0";
-            
-            // Check if this product is ignored/deactivated
+            const priceData = calculatePriceWithMargin(product);
             const isIgnored = localIgnoredIds.has(product.meta.id);
+            const supplierName = product.supplier?.supplier || 'Unknown';
 
             return (
               <TableRow key={index}>
@@ -178,7 +220,20 @@ const AlProducts = () => {
                 </TableCell>
                 <TableCell>{product.overview.name || 'No Name'}</TableCell>
                 <TableCell>{product.overview.code || 'No Code'}</TableCell>
-                <TableCell>${realPrice}</TableCell>
+                <TableCell>{supplierName}</TableCell>
+                <TableCell className="text-gray-600">
+                  ${priceData.originalPrice.toFixed(2)}
+                </TableCell>
+                <TableCell className="text-blue-600">
+                  {priceData.supplierMargin > 0 ? (
+                    `+$${priceData.supplierMargin.toFixed(2)}`
+                  ) : (
+                    <span className="text-gray-400">No margin</span>
+                  )}
+                </TableCell>
+                <TableCell className="font-semibold text-green-600">
+                  ${priceData.finalPrice.toFixed(2)}
+                </TableCell>
                 <TableCell className="text-right">
                   {isIgnored ? (
                     <Button
