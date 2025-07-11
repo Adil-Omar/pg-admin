@@ -15,6 +15,7 @@ import { ToastContainer } from "react-toastify";
 import QuoteAdmin from "./components/maincomponent/QuoteAdmin";
 import Blog from "./components/maincomponent/Blog";
 import Reports from "./components/maincomponent/Reports";
+import AlSuppliers from "./components/maincomponent/AlSuppliers";
 
 const PrivateRoute = ({ element }) => {
   const { aToken } = useContext(AdminContext);
@@ -54,6 +55,7 @@ const App = () => {
                 <Route path="/orders" element={<PrivateRoute element={<Orders />} />} />
                 <Route path="/order-details/:id" element={<PrivateRoute element={<Products />} />} />
                 <Route path="/products" element={<PrivateRoute element={<AlProducts />} />} />
+                <Route path="/suppliers" element={<PrivateRoute element={<AlSuppliers />} />} />
                 <Route path="/quote" element={<PrivateRoute element={<QuoteAdmin />} />} />
                 <Route path="/reports" element={<PrivateRoute element={<Reports />} />} />
                 <Route path="/product/:id" element={<PrivateRoute element={<AlProductDetail />} />} />

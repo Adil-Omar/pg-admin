@@ -93,6 +93,18 @@ const Sidebar = ({ isOpen, toggleSidebar }) => {
           </span>
         </Link>
         <Link
+          to="/suppliers"
+          className="flex items-center px-4 py-2 hover:bg-blue-500 group"
+        >
+          <FaShoppingCart size={20} className="mr-3 text-gray-700" />
+          <span
+            className={`text-gray-700 group-hover:text-white transition-all duration-300 ${!isOpen && "hidden"
+              }`}
+          >
+            Suppliers
+          </span>
+        </Link>
+        <Link
           to="/users"
           className="flex items-center px-4 py-2 hover:bg-blue-500 group"
         >

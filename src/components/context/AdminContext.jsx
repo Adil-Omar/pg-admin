@@ -16,6 +16,7 @@ const AdminContextProvider = (props) => {
 
     const [orders, setOrders] = useState([]);
     const [products, setProducts] = useState([]);
+    const [suppliers, setSuppliers] = useState([]);
 
     const [aToken, setAToken] = useState(
         localStorage.getItem("aToken") ? localStorage.getItem("aToken") : false
@@ -59,6 +60,27 @@ const AdminContextProvider = (props) => {
         if (data.ignoredProductIds) {
             setIgnoredProductIds(new Set(data.ignoredProductIds));
         }
+    } catch (err) {
+        setError(err.message);
+    } finally {
+        setAllProductLoading(false);
+    }
+};
+    const fetchSuppliers = async () => {
+    setAllProductLoading(true);
+    try {
+        const response = await fetch(`${backednUrl}/api/supplier-products`);
+        if (!response.ok) throw new Error('Failed to fetch Suppliers');
+
+        const data = await response.json();
+
+        if (!data || !data.data) {
+            throw new Error('Unexpected API response structure');
+        }
+        
+        setSuppliers(data.data);
+        
+
     } catch (err) {
         setError(err.message);
     } finally {
@@ -153,6 +175,7 @@ const AdminContextProvider = (props) => {
             fetchUsers();
             fetchOrders();
             fetchProducts();
+            fetchSuppliers();
             fetchBlogs();
             listQuotes()
         }
@@ -172,6 +195,9 @@ const AdminContextProvider = (props) => {
         orderCompleted,
         fetchProducts,
         products,
+        fetchSuppliers,
+        suppliers,
+        setProducts,
         backednUrl,
         allProductLoading,
         showPopup,
